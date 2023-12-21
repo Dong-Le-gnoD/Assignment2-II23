@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Robot States</title>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #3498db; /* Change background color here */
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 80%;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #fff;
+            padding: 10px;
+            text-align: center;
+            height: 100px; /* Set a fixed height for each row */
+            width: 300px; /* Set a fixed width for each cell */
+        }
+
+        th {
+            background-color: #27ae60; /* Header background color */
+        }
+
+        td {
+            background-color: #2ecc71; /* Cell background color */
+        }
+
+        a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 4px;
+            background-color: #2980b9;
+            transition: background-color 0.3s;
+            margin: 5px;
+            cursor: pointer;
+        }
+
+        a:hover {
+            background-color: #1c4966;
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+            function updateRobotStates() {
+                $.ajax({
+                    url: '{{ url_for("get_robot_states") }}',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        updateRobotStatesUI(data);
+                    },
+                    error: function (error) {
+                        console.log('Error fetching robot states:', error);
+                    }
+                });
+            }
+
+            function padding(inp) {
+                return inp < 10 ? "0" + inp : inp;
+            }
+
+            function int_time_to_string(int_time) {
+                var hr = new Date(int_time).getHours();
+                var min = new Date(int_time).getMinutes();
+                var sec = new Date(int_time).getSeconds();
+                var dd = new Date(int_time).getDate();
+                var mth = new Date(int_time).getMonth() + 1;
+                var yr = new Date(int_time).getFullYear();
+
+                hr = padding(hr);
+                min = padding(min);
+                sec = padding(sec);
+                dd = padding(dd);
+                mth = padding(mth);
+                var str_date_time = hr + ":" + min + ":" + sec + " " + dd + "-" + mth + "-" + yr;
+                return str_date_time;
+            }
+
+            function updateRobotStatesUI(robotStates) {
+                var robotTable = $('#robot-table');
+                robotTable.empty();
+
+                var tableHtml = '<table>';
+                var robots = Object.keys(robotStates);
+
+                for (var i = 0; i < 5; i++) {
+                    tableHtml += '<tr>';
+                    for (var j = 0; j < 2; j++) {
+                        var robotIndex = i * 2 + j;
+                        if (robotIndex < robots.length) {
+                            var robot = robots[robotIndex];
+                            var states = robotStates[robot] || [];
+
+                            var str_time = int_time_to_string(states[1])
+                            var latestStatus = states.length > 0 ? states[0] : '';
+<!--                            var latestTimestamp = states.length > 0 ? str_time : '';-->
+                            var latestTimestamp = states[0] == 'None' ? 'None' : str_time;
+
+                            tableHtml += '<td>' + robot + '<br>Status: ' + latestStatus + '<br>Time: ' + latestTimestamp + '</td>';
+                        } else {
+                            tableHtml += '<td></td>';
+                        }
+                    }
+                    tableHtml += '</tr>';
+                }
+
+                tableHtml += '</table>';
+                robotTable.html(tableHtml);
+            }
+
+            // Initial update
+            updateRobotStates();
+
+            // Update every 10 seconds
+            setInterval(updateRobotStates, 10000);
+        });
+    </script>
+</head>
+<body>
+    <h1>All Robot States</h1>
+    <div id="robot-table"></div>
+    <p><a href="{{ url_for('events_display') }}">Analysis</a></p>
+</body>
+</html>

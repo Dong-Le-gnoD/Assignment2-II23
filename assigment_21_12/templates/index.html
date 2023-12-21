@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical data</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e74c3c;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+
+        form {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 5px;
+            margin-bottom: 7px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        input[type="submit"] {
+            background-color: #e74c3c;
+            color: #fff;
+            cursor: pointer;
+            font-size: 9px;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 20px;
+            transition: background-color 0.3s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #c0392b;
+        }
+
+        a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 4px;
+            background-color: #c0392b;
+            transition: background-color 0.3s;
+        }
+
+        a:hover {
+            background-color: #922b21;
+        }
+    </style>
+    <script>
+        window.setInterval(function () {
+            $.get('{{ url_for("get_robot_states") }}', function (data) {
+             });
+        }, 10000);
+    </script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Historical data</h2>
+
+        <form onsubmit="return searchResults();">
+            <div class="form-group">
+                <label for="start_time">From:</label>
+                <input type="datetime-local" id="start_time" name="start_time" value="2023-12-01T00:00" min="2023-12-01T00:00" max="2023-12-31T23:59"/>
+            </div>
+
+            <div class="form-group">
+                <label for="end_time">To:</label>
+                <input type="datetime-local" id="end_time" name="end_time" value="2023-12-31T23:59" min="2023-12-01T00:01"/>
+            </div>
+
+            <div class="form-group">
+                <label for="robotSelect">Select Robot:</label>
+                <select class="form-control" id="robotSelect" name="robotSelect" required>
+                    <option value="rob1">Robot 1</option>
+                    <option value="rob2">Robot 2</option>
+                    <option value="rob3">Robot 3</option>
+                    <option value="rob4">Robot 4</option>
+                    <option value="rob5">Robot 5</option>
+                    <option value="rob6">Robot 6</option>
+                    <option value="rob7">Robot 7</option>
+                    <option value="rob8">Robot 8</option>
+                    <option value="rob9">Robot 9</option>
+                    <option value="rob10">Robot 10</option>
+                </select>
+            </div>
+            <div class="row mt-3" id="butContainer">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+            <div class="row mt-3" id="butContainer2">
+                <p><a href="{{ url_for('index') }}">Status</a></p>
+            </div>
+
+        </form>
+
+        <div class="row mt-3" id="meanContainer">
+            <div class="col-md-6" id="mean"></div>
+        </div>
+        <div class="row mt-3" id="chartContainer">
+            <div class="col-md-6" id="analyticaltable"></div>
+            <div class="col-md-6" id="piechart"></div>
+
+        </div>
+        <div class="row mt-3" id="resultContainer">
+            <div class="col-md-6" id="historytable"></div>
+        </div>
+
+
+
+        <script>
+            google.charts.load('current', {'packages':['corechart']});
+            {#google.charts.setOnLoadCallback(drawChart);#}
+            $('#piechart').html('<p></p>');
+            function searchResults() {
+                var start_time = document.getElementById('start_time').value;
+                var end_time = document.getElementById('end_time').value;
+                var robotSelect = document.getElementById('robotSelect').value;
+
+                end_time = new Date(end_time).getTime();
+                start_time = new Date(start_time).getTime();
+
+                var formData = {
+                    start_time: start_time,
+                    end_time: end_time,
+                    robotSelect: robotSelect
+                };
+                $.post('/chart_results', formData, function(chart_data) {
+                    summaryTable(chart_data);
+                    smallpieChart(chart_data);
+                    $.post('/search_results', formData, function(result_data) {
+                        createTable(result_data);
+                    });
+                });
+
+
+
+
+
+
+                // Prevent form submission
+                return false;
+            }
+
+            // Function to clear table content
+            function clearTableContent(containerId) {
+                // Clear the content of the specified container
+                document.getElementById(containerId).innerHTML = '';
+            }
+
+            function padding(inp) {
+                return inp < 10 ? "0" + inp : inp;
+            }
+
+            function int_time_to_string(int_time) {
+                var hr = new Date(int_time).getHours();
+                var min = new Date(int_time).getMinutes();
+                var sec = new Date(int_time).getSeconds();
+                var dd = new Date(int_time).getDate();
+                var mth = new Date(int_time).getMonth() + 1;
+                var yr = new Date(int_time).getFullYear();
+
+                hr = padding(hr);
+                min = padding(min);
+                sec = padding(sec);
+                dd = padding(dd);
+                mth = padding(mth);
+                var str_date_time = hr + ":" + min + ":" + sec + " " + dd + "-" + mth + "-" + yr;
+                return str_date_time;
+            }
+
+
+            function createTable(data) {
+                var historytable = document.getElementById('historytable');
+
+                historytable.innerHTML = '';
+
+                var table = document.createElement('table');
+                table.className = 'table';
+
+                var thead = document.createElement('thead');
+                var tbody = document.createElement('tbody');
+
+                var headerRow = document.createElement('tr');
+                headerRow.innerHTML = '<th>Timestamp</th><th>Status</th>';
+                thead.appendChild(headerRow);
+
+                data_rv = JSON.parse(data).reverse();
+                data_rv.forEach(function(dataItem) {
+                    var str_time = int_time_to_string(dataItem.time)
+                    var row = document.createElement('tr');
+                    row.innerHTML = '<td>' + str_time + '</td><td>' + dataItem.state + '</td>';
+                    tbody.appendChild(row);
+                });
+
+                table.appendChild(thead);
+                table.appendChild(tbody);
+                historytable.appendChild(table);
+            }
+
+
+
+
+            function smallpieChart(data_dict) {
+                let array = [['Event', 'Counted number']]
+
+                for (let key in data_dict)
+                    if (key != 'mean')
+                        array.push([key, data_dict[key]['time']]);
+
+                let data = google.visualization.arrayToDataTable(array);
+                let options = {'title':'Percentage of time in each state'};
+                let chart = new google.visualization.PieChart(document.getElementById('piechart'));
+                chart.draw(data, options);
+            }
+
+
+
+
+            function summaryTable(data_dict) {
+                var analyticaltable = document.getElementById('analyticaltable');
+
+                analyticaltable.innerHTML = '';
+
+                var table = document.createElement('table');
+                table.className = 'table';
+
+                var thead = document.createElement('thead');
+                var tbody = document.createElement('tbody');
+
+                var headerRow = document.createElement('tr');
+                headerRow.innerHTML = '<th>Event</th><th>Number</th><th>Percentage</th><th>Average</th>';
+                thead.appendChild(headerRow);
+
+
+                for (var state in data_dict) {
+                    if (state != 'mean'){
+                        if (data_dict.hasOwnProperty(state)) {
+                            var status_dict = data_dict[state];
+
+                            var row = document.createElement('tr');
+                            row.innerHTML = '<td>' + state + '</td>' +
+                                            '<td>' + status_dict.counter + '</td>' +
+                                            '<td>' + status_dict.percent + '</td>' +
+                                            '<td>' + status_dict.average + '</td>';
+
+                            tbody.appendChild(row);
+                        }
+                    }
+                }
+
+                table.appendChild(thead);
+                table.appendChild(tbody);
+                analyticaltable.appendChild(table);
+
+
+
+                var mean = data_dict['mean']
+                var hr = Math.floor(mean / 3600);
+                var minute = Math.floor(mean % 60 / 60);
+                var sec = mean % 60 % 60;
+                var display_time = hr + 'h ' + minute + 'm ' + sec + 's '
+                var mean_html = '<p>Mean time between failures: ' + display_time + '</p>';
+                $('#mean').html(mean_html);
+            }
+
+
+        </script>
+    </div>
+</body>
+</html>
